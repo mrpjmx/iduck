@@ -11,20 +11,27 @@ import icon from "astro-icon";
 
 import sitemap from "@astrojs/sitemap";
 
+import cloudflare from "@astrojs/cloudflare";
+
 // disable image optimization in dev mode to allow the project to work on StackBlitz
 const disableImageOptimization = process.env.NODE_ENV === "development";
 
 // https://astro.build/config
 export default defineConfig({
-	trailingSlash: "never",
-	site: "https://example.com",
-	vite: {
+    trailingSlash: "never",
+    site: "https://example.com",
+
+    vite: {
 		plugins: [tailwindcss()],
 	},
-	integrations: [mdx(), icon(), sitemap()],
-	image: {
+
+    integrations: [mdx(), icon(), sitemap()],
+
+    image: {
 		service: disableImageOptimization
 			? passthroughImageService()
 			: sharpImageService(),
 	},
+
+    adapter: cloudflare()
 });
