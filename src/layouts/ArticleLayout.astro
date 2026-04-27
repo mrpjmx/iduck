@@ -1,52 +1,109 @@
 ---
-import BaseLayout from "./BaseLayout.astro";
 import type { CollectionEntry } from "astro:content";
-import { Image, getImage } from "astro:assets";
 import FormattedDate from "../components/FormattedDate.astro";
 
 type Props = CollectionEntry<"blog">["data"];
-
-const { title, description, pubDate, heroImage } = Astro.props;
-
-const ogImage = heroImage
-	? await getImage({
-			src: heroImage,
-			format: "webp",
-			width: 960,
-			height: 480,
-		})
-	: null;
+const { title, description, pubDate } = Astro.props;
 ---
 
-<BaseLayout
-	title={title}
-	description={description}
-	image={ogImage ? ogImage.src : null}
->
-	<div class="mx-auto max-w-3xl">
-		<article class="mb-40">
-			{
-				heroImage && (
-					<Image
-						src={heroImage}
-						alt={title}
-						class="object-cover w-full rounded-lg mb-10"
-					/>
-				)
-			}
-			<div
-				class="prose dark:prose-invert mx-auto prose-slate prose-a:text-primary-500 max-w-none"
-			>
-				<header class="flex flex-col gap-y-4">
-					<h1 class="text-balance text-3xl sm:text-4xl">{title}</h1>
-					<time
-						class="order-first text-sm font-mono inline-flex mx-auto text-stone-400"
-					>
-						<FormattedDate date={pubDate} />
-					</time>
-				</header>
-				<slot />
-			</div>
-		</article>
-	</div>
-</BaseLayout>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      background: #fafafa;
+      color: #222;
+      min-height: 100vh;
+      line-height: 1.8;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    header {
+      padding: 3rem 0 2rem;
+    }
+    .back {
+      display: inline-block;
+      font-size: 0.85rem;
+      color: #999;
+      margin-bottom: 2rem;
+    }
+    .back:hover { color: #444; }
+    .article-title {
+      font-size: 1.6rem;
+      font-weight: 500;
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .article-meta {
+      font-size: 0.8rem;
+      color: #bbb;
+      font-family: monospace;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #eee;
+    }
+    .article-content { font-size: 0.95rem; }
+    .article-content h2 {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin: 2rem 0 0.75rem;
+    }
+    .article-content p { margin-bottom: 1rem; color: #555; }
+    .article-content strong { font-weight: 500; color: #333; }
+    .article-content blockquote {
+      margin: 1.5rem 0;
+      padding: 0.75rem 1rem;
+      border-left: 3px solid #ddd;
+      color: #777;
+      font-style: italic;
+    }
+    .article-content code {
+      background: #f0f0f0;
+      padding: 0.15em 0.4em;
+      border-radius: 3px;
+      font-size: 0.88em;
+    }
+    .article-content pre {
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+    .article-content pre code { background: none; padding: 0; }
+    .article-content ul, .article-content ol {
+      margin: 0.75rem 0 1.25rem 1.25rem;
+    }
+    .article-content li { margin-bottom: 0.3rem; color: #555; }
+    footer {
+      padding: 3rem 0;
+      font-size: 0.75rem;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a href="/" class="back">← 返回</a>
+      <h1 class="article-title">{title}</h1>
+      <div class="article-meta"><FormattedDate date={pubDate} /></div>
+    </header>
+    <div class="article-content">
+      <slot />
+    </div>
+    <footer>© 2026</footer>
+  </div>
+</body>
+</html>
