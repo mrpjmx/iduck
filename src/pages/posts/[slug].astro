@@ -1,0 +1,185 @@
+---
+export function getStaticPaths() {
+  const posts = ['first', 'second', '洛克之路', 'third'];
+  return posts.map(slug => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+
+const allPosts = [
+  { slug: 'first', title: 'Astro 初体验 - 极快的静态站点框架', date: '2026-04-27', author: '川哥', readTime: '5 分钟', tags: ['Astro', '前端', '静态博客'], category: '技术', excerpt: 'Astro 是一个专注于内容驱动的 Web 框架，它的核心卖点是「服务器优先渲染」和几乎零 JavaScript 输出。' },
+  { slug: 'second', title: '为什么我选择静态博客', date: '2026-04-25', author: '川哥', readTime: '3 分钟', tags: ['静态博客', '工具'], category: '技术', excerpt: '静态博客有很多优点：加载快、SEO 友好、安全、无服务器成本，维护简单。' },
+  { slug: '洛克之路', title: '摩旅甘南秘境——洛克之路', date: '2024-08-15', author: '川哥', readTime: '8 分钟', tags: ['摩旅', '甘南', '洛克之路', '旅行'], category: '旅行', excerpt: '甘南川西环线摩旅之旅，眼睛上天堂，轮胎下地狱。' },
+  { slug: 'third', title: 'GitHub Trending 怎么看', date: '2026-04-24', author: '川哥', readTime: '2 分钟', tags: ['GitHub', '工具'], category: '工具', excerpt: '今天 GitHub 有哪些项目在飙升？mattpocock/skills 暴涨 2.5k+ star。' },
+];
+
+const post = allPosts.find(p => p.slug === slug);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{post?.title ?? 'Not Found'}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root {
+        --bg: rgba(0, 0, 0, 0.02);
+        --card: rgba(255, 255, 255, 0.7);
+        --text: #1a1a1a;
+        --text-secondary: #666;
+        --text-muted: #999;
+        --accent: #667eea;
+        --border: rgba(0, 0, 0, 0.06);
+      }
+      html { scroll-behavior: smooth; }
+      body {
+        font-family: 'Noto Sans SC', -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        line-height: 1.8;
+      }
+      .container { max-width: 680px; margin: 0 auto; padding: 0 1.5rem; }
+
+      header { padding: 2.5rem 0 2rem; }
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.85rem;
+        padding: 0.4rem 0.9rem;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        backdrop-filter: blur(10px);
+        transition: all 0.2s;
+      }
+      .back:hover { color: var(--accent); border-color: var(--accent); }
+
+      .article {
+        background: var(--card);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin: 1.5rem 0 3rem;
+      }
+      .article-header { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+      .article-title {
+        font-size: 1.6rem;
+        font-weight: 600;
+        line-height: 1.35;
+        margin-bottom: 0.8rem;
+        letter-spacing: -0.02em;
+      }
+      .article-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+      }
+      .article-tags { display: flex; gap: 0.4rem; margin-top: 0.75rem; flex-wrap: wrap; }
+      .article-tag { font-size: 0.72rem; color: var(--text-muted); background: rgba(0,0,0,0.04); padding: 0.2rem 0.5rem; border-radius: 4px; }
+
+      .article-content { font-size: 0.95rem; }
+      .article-content h2 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+      .article-content p { margin-bottom: 1rem; color: var(--text-secondary); }
+      .article-content strong { font-weight: 500; color: var(--text); }
+      .article-content blockquote { margin: 1.5rem 0; padding: 1rem 1.25rem; border-left: 3px solid var(--accent); background: rgba(102,126,234,0.06); border-radius: 0 8px 8px 0; color: var(--text-secondary); font-style: normal; }
+      .article-content ul, .article-content ol { margin: 1rem 0 1.5rem 1.25rem; }
+      .article-content li { margin-bottom: 0.4rem; color: var(--text-secondary); }
+      .article-content code { background: rgba(0,0,0,0.05); padding: 0.2em 0.4em; border-radius: 4px; font-size: 0.9em; }
+      .article-content pre { background: rgba(0,0,0,0.04); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1.5rem 0; }
+      .article-content pre code { background: none; padding: 0; }
+      .article-content img { width: 100%; border-radius: 10px; margin: 1.5rem 0; border: 1px solid var(--border); }
+
+      @media (max-width: 600px) {
+        .article { padding: 1.5rem; }
+        .article-title { font-size: 1.35rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <a href="/" class="back">← 返回</a>
+      </header>
+
+      {post ? (
+        <article class="article">
+          <div class="article-header">
+            <h1 class="article-title">{post.title}</h1>
+            <div class="article-meta">
+              <span>{post.date}</span>
+              <span>·</span>
+              <span>{post.author}</span>
+              <span>·</span>
+              <span>{post.readTime}</span>
+              <span>·</span>
+              <span>{post.category}</span>
+            </div>
+            <div class="article-tags">
+              {post.tags.map(tag => <span class="article-tag">{tag}</span>)}
+            </div>
+          </div>
+          <div class="article-content">
+            {post.slug === 'first' && (
+              <>
+                <h2>什么是 Astro？</h2>
+                <p>Astro 是一个专注于<strong>内容驱动网站</strong>的 JavaScript 框架。它的核心特点是：默认情况下不向浏览器发送任何 JavaScript，只输出纯粹的 HTML + CSS。</p>
+                <blockquote>做内容型网站，Astro 是目前最好的选择之一。</blockquote>
+                <h2>快速开始</h2>
+                <pre><code>npm create astro@latest</code></pre>
+                <p>访问 <code>http://localhost:4321</code> 就能看到你的博客了。</p>
+              </>
+            )}
+            {post.slug === 'second' && (
+              <>
+                <h2>静态博客的优势</h2>
+                <p>用了这么多年动态博客，换了无数套 CMS，最后还是回到了静态博客。原因很简单：</p>
+                <ul>
+                  <li><strong>速度</strong>：纯 HTML 文件，CDN 加速，毫秒级加载</li>
+                  <li><strong>安全</strong>：没有数据库，没有 PHP/数据库漏洞</li>
+                  <li><strong>成本</strong>：GitHub Pages / Vercel 免费托管</li>
+                  <li><strong>维护</strong>：不用操心服务器、数据库备份</li>
+                </ul>
+                <blockquote>最好的写作工具，就是不打断写作思路的工具。</blockquote>
+                <h2>结论</h2>
+                <p>静态博客不是倒退，而是回归本质：内容为王。</p>
+              </>
+            )}
+            {post.slug === '洛克之路' && (
+              <>
+                <h2>引言</h2>
+                <p>种草甘南已经很多年，所以今夏必须得安排一次长途摩旅。扎尕那、洛克之路、拉卜楞寺、郎木寺...骑上心爱的小摩托，开始了甘南川西环线之旅。</p>
+                <h2>路线</h2>
+                <p>环线：成都—青川—陇南—扎尕那—洛克之路—拉卜楞寺—桑科大草原—郎木寺—花湖—松潘—成都。</p>
+                <blockquote>眼睛上天堂，轮胎下地狱。</blockquote>
+                <p>随着海拔变化，有了森林、草原、河流，整条路上旷景和幽景并存，值得二刷的线路。</p>
+                <h2>后记</h2>
+                <p>川西甘南这条夏日经典路线，让人心驰神往，希望有朝一日能再次回到这里。</p>
+              </>
+            )}
+            {post.slug === 'third' && (
+              <>
+                <h2>GitHub Trending</h2>
+                <p>今天 GitHub 有哪些项目在飙升？mattpocock/skills 暴涨 2.5k+ star，非常夸张。</p>
+                <p>这个项目是 Matt Pocock 的 Claude skills 合集，给 AI 助手用的技能集合，非常火。</p>
+                <blockquote>关注 Trending 可以了解行业动态和热门技术趋势。</blockquote>
+              </>
+            )}
+          </div>
+        </article>
+      ) : (
+        <p style="text-align:center;padding:4rem;color:#999;">文章不存在</p>
+      )}
+    </div>
+  </body>
+</html>

@@ -1,0 +1,104 @@
+---
+export function getStaticPaths() {
+  const allPosts = [
+    { slug: 'first', title: 'Astro 初体验', date: '2026-04-27', tags: ['Astro', '前端', '静态博客'], category: '技术', excerpt: 'Astro 是一个专注于内容驱动的 Web 框架...' },
+    { slug: 'second', title: '为什么我选择静态博客', date: '2026-04-25', tags: ['静态博客', '工具'], category: '技术', excerpt: '静态博客有很多优点...' },
+    { slug: '洛克之路', title: '摩旅甘南秘境', date: '2024-08-15', tags: ['摩旅', '甘南', '洛克之路', '旅行'], category: '旅行', excerpt: '甘南川西环线...' },
+    { slug: 'third', title: 'GitHub Trending 怎么看', date: '2026-04-24', tags: ['GitHub', '工具'], category: '工具', excerpt: 'mattpocock/skills 暴涨...' },
+  ];
+  const tags = [...new Set(allPosts.flatMap(p => p.tags))];
+  return tags.map(tag => ({ params: { tag } }));
+}
+
+const { tag } = Astro.params;
+
+const allPosts = [
+  { slug: 'first', title: 'Astro 初体验 - 极快的静态站点框架', date: '2026-04-27', readTime: '5 分钟', tags: ['Astro', '前端', '静态博客'], category: '技术', excerpt: 'Astro 是一个专注于内容驱动的 Web 框架，它的核心卖点是「服务器优先渲染」和几乎零 JavaScript 输出。' },
+  { slug: 'second', title: '为什么我选择静态博客', date: '2026-04-25', readTime: '3 分钟', tags: ['静态博客', '工具'], category: '技术', excerpt: '静态博客有很多优点：加载快、SEO 友好、安全、无服务器成本，维护简单。' },
+  { slug: '洛克之路', title: '摩旅甘南秘境——洛克之路', date: '2024-08-15', readTime: '8 分钟', tags: ['摩旅', '甘南', '洛克之路', '旅行'], category: '旅行', excerpt: '甘南川西环线摩旅之旅，眼睛上天堂，轮胎下地狱。' },
+  { slug: 'third', title: 'GitHub Trending 怎么看', date: '2026-04-24', readTime: '2 分钟', tags: ['GitHub', '工具'], category: '工具', excerpt: '今天 GitHub 有哪些项目在飙升？mattpocock/skills 暴涨 2.5k+ star。' },
+];
+
+const filtered = allPosts.filter(p => p.tags.includes(tag));
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>#{tag}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root {
+        --bg: rgba(0, 0, 0, 0.02);
+        --card: rgba(255, 255, 255, 0.7);
+        --text: #1a1a1a;
+        --text-secondary: #666;
+        --text-muted: #999;
+        --accent: #667eea;
+        --border: rgba(0, 0, 0, 0.06);
+      }
+      body {
+        font-family: 'Noto Sans SC', -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        line-height: 1.7;
+      }
+      .container { max-width: 680px; margin: 0 auto; padding: 0 1.5rem; }
+      header { padding: 2.5rem 0 2rem; }
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.85rem;
+        padding: 0.4rem 0.9rem;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        backdrop-filter: blur(10px);
+        transition: all 0.2s;
+      }
+      .back:hover { color: var(--accent); border-color: var(--accent); }
+      h1 { font-size: 1.4rem; font-weight: 500; margin: 2rem 0; color: var(--text); }
+      h1 span { color: var(--accent); font-weight: 400; }
+      .posts { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 3rem; }
+      .post {
+        background: var(--card);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1.5rem 1.75rem;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: all 0.25s ease;
+      }
+      .post:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(102,126,234,0.1); border-color: rgba(102,126,234,0.2); }
+      .post h2 { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.4rem; }
+      .post .meta { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.6rem; }
+      .post .excerpt { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; font-weight: 300; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <a href="/" class="back">← 返回</a>
+      </header>
+      <h1>标签：<span>#{tag}</span></h1>
+      <div class="posts">
+        {filtered.map(post => (
+          <a href={`/posts/${post.slug}`} class="post">
+            <h2>{post.title}</h2>
+            <div class="meta">{post.date} · {post.readTime ?? post.category}</div>
+            <p class="excerpt">{post.excerpt}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </body>
+</html>
