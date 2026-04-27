@@ -1,0 +1,45 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { getCollection } from "astro:content";
+import FormattedDate from "../components/FormattedDate.astro";
+
+const posts = (await getCollection("blog")).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+---
+
+<BaseLayout>
+	<div class="mx-auto lg:max-w-4xl mt-40 mb-20">
+		<h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-balance">
+			川哥的博客
+		</h1>
+		<p class="mt-6 text-lg text-slate-600 dark:text-slate-400 leading-8">
+			记录想法与折腾
+		</p>
+	</div>
+
+	<div class="mx-auto lg:max-w-4xl my-16">
+		<h2 class="text-2xl font-bold tracking-tight mb-10">最新文章</h2>
+		<div class="space-y-8">
+			{posts.map((post) => (
+				<article class="relative group">
+					<a href={`/blog/${post.id}`} class="absolute inset-0" />
+					<div class="relative">
+						<h3 class="text-xl font-semibold group-hover:text-slate-600 dark:group-hover:text-slate-300 transition">
+							{post.data.title}
+						</h3>
+						<time class="text-sm font-mono text-slate-500 mt-1 block">
+							<FormattedDate date={post.data.pubDate} />
+						</time>
+						<p class="mt-3 text-slate-600 dark:text-slate-400 leading-relaxed">
+							{post.data.description}
+						</p>
+						<span class="mt-4 text-sm font-medium text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition">
+							阅读全文 →
+						</span>
+					</div>
+				</article>
+			))}
+		</div>
+	</div>
+</BaseLayout>
