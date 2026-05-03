@@ -47,4 +47,9 @@ SortBy              = "default"
 
 ## Comments
 [comments]
-    enabled = false
+    enabled = true
+    provider = "artalk"
+
+[comments.artalk]
+    serverUrl = "https://artalk.iduck.top/"
+    site = "iduck"
