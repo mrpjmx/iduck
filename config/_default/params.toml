@@ -9,7 +9,7 @@ SortBy              = "default"
 
 [footer]
     since      = 2026
-    customText = "iDuck Hugo 博客系统"
+    customText = "理想四旬"
 
 [dateFormat]
     published   = "2006-01-02"
