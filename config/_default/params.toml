@@ -17,7 +17,7 @@ SortBy              = "default"
 
 [sidebar]
     emoji    = "🦆"
-    subtitle = "基于 Hugo 构建的博客系统"
+    subtitle = "Chuan`s memory"
     avatar   = "img/avatar.png"
 
 [article]
