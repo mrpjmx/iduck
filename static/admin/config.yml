@@ -1,0 +1,64 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: static/img
+public_folder: /img
+
+collections:
+  # 文章集合
+  - name: "post"
+    label: "文章"
+    folder: "content/post"
+    create: true
+    slug: "{{slug}}"
+    path: "{{slug}}/index"
+    media_folder: ""
+    public_folder: ""
+    fields:
+      - { label: "标题", name: "title", widget: "string" }
+      - { label: "描述", name: "description", widget: "string", required: false }
+      - { label: "发布日期", name: "date", widget: "datetime" }
+      - { label: "封面图片", name: "image", widget: "image", required: false }
+      - { label: "别名", name: "slug", widget: "string", required: false }
+      - label: "分类"
+        name: "categories"
+        widget: "list"
+        required: false
+        field: { label: "分类", name: "category", widget: "string" }
+      - label: "标签"
+        name: "tags"
+        widget: "list"
+        required: false
+        field: { label: "标签", name: "tag", widget: "string" }
+      - { label: "权重", name: "weight", widget: "number", required: false }
+      - { label: "数学公式", name: "math", widget: "boolean", default: false, required: false }
+      - { label: "正文", name: "body", widget: "markdown" }
+
+  # 页面集合
+  - name: "page"
+    label: "页面"
+    folder: "content/page"
+    create: true
+    slug: "{{slug}}"
+    path: "{{slug}}/index"
+    media_folder: ""
+    public_folder: ""
+    fields:
+      - { label: "标题", name: "title", widget: "string" }
+      - { label: "描述", name: "description", widget: "string", required: false }
+      - { label: "发布日期", name: "date", widget: "datetime", required: false }
+      - { label: "封面图片", name: "image", widget: "image", required: false }
+      - { label: "正文", name: "body", widget: "markdown" }
+
+  # 分类页面
+  - name: "categories"
+    label: "分类"
+    folder: "content/categories"
+    create: true
+    slug: "{{slug}}"
+    path: "{{slug}}/index"
+    fields:
+      - { label: "标题", name: "title", widget: "string" }
+      - { label: "描述", name: "description", widget: "string", required: false }
+      - { label: "正文", name: "body", widget: "markdown", required: false }
