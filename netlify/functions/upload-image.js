@@ -1,20 +1,21 @@
 /**
  * Netlify Function: R2 图片上传
  * 路径: /api/upload-image
+ * 敏感信息通过环境变量配置
  */
 
-// R2 配置
-const R2_CONFIG = {
-  bucket: 'chuan',
-  endpoint: 'https://d73621fcfcf20718e89ed1f21c0f5093.r2.cloudflarestorage.com',
-  region: 'APAC',
-  accessKeyId: '4e19afe00d174876750e1ca484e13c7a',
-  secretAccessKey: '19f61a9230c49a221269015439005a0c18efe1f6cfe3a0c3218c2e92847eaaaf',
-  customDomain: 'https://img.brochuan.com'
-};
+// 从环境变量读取配置
+const getConfig = () => ({
+  bucket: process.env.R2_BUCKET || 'chuan',
+  endpoint: process.env.R2_ENDPOINT || 'https://d73621fcfcf20718e89ed1f21c0f5093.r2.cloudflarestorage.com',
+  region: process.env.R2_REGION || 'APAC',
+  accessKeyId: process.env.R2_ACCESS_KEY_ID,
+  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  customDomain: process.env.R2_CUSTOM_DOMAIN || 'https://img.brochuan.com'
+});
 
 // 生成 AWS Signature V4
-async function generateSignature(method, path, headers, body, timestamp) {
+async function generateSignature(method, path, headers, body, timestamp, config) {
   const encoder = new TextEncoder();
   
   const canonicalHeaders = Object.keys(headers)
@@ -45,7 +46,7 @@ async function generateSignature(method, path, headers, body, timestamp) {
   ].join('\n');
 
   const date = timestamp.slice(0, 8);
-  const credentialScope = `${date}/${R2_CONFIG.region}/s3/aws4_request`;
+  const credentialScope = `${date}/${config.region}/s3/aws4_request`;
   
   const canonicalRequestHash = await crypto.subtle.digest(
     'SHA-256',
@@ -61,12 +62,12 @@ async function generateSignature(method, path, headers, body, timestamp) {
     canonicalRequestHash
   ].join('\n');
 
-  const kSecret = encoder.encode(`AWS4${R2_CONFIG.secretAccessKey}`);
+  const kSecret = encoder.encode(`AWS4${config.secretAccessKey}`);
   const kDate = await crypto.subtle.importKey('raw', kSecret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const kDateSig = await crypto.subtle.sign('HMAC', kDate, encoder.encode(date));
   
   const kRegion = await crypto.subtle.importKey('raw', kDateSig, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const kRegionSig = await crypto.subtle.sign('HMAC', kRegion, encoder.encode(R2_CONFIG.region));
+  const kRegionSig = await crypto.subtle.sign('HMAC', kRegion, encoder.encode(config.region));
   
   const kService = await crypto.subtle.importKey('raw', kRegionSig, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const kServiceSig = await crypto.subtle.sign('HMAC', kService, encoder.encode('s3'));
@@ -89,6 +90,17 @@ function generateFilename(originalName) {
 }
 
 export async function handler(event, context) {
+  const config = getConfig();
+  
+  // 检查必需的环境变量
+  if (!config.accessKeyId || !config.secretAccessKey) {
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'R2 credentials not configured' })
+    };
+  }
+
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -158,14 +170,14 @@ export async function handler(event, context) {
 
     // 生成唯一文件名
     const newFilename = generateFilename(filename);
-    const path = `/${R2_CONFIG.bucket}/${newFilename}`;
+    const path = `/${config.bucket}/${newFilename}`;
     
     // 上传到 R2
     const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const date = timestamp.slice(0, 8);
     
     const requestHeaders = {
-      'Host': new URL(R2_CONFIG.endpoint).host,
+      'Host': new URL(config.endpoint).host,
       'Content-Type': contentType,
       'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD',
       'X-Amz-Date': timestamp
@@ -176,11 +188,11 @@ export async function handler(event, context) {
       .map(k => k.toLowerCase())
       .join(';');
 
-    const signature = await generateSignature('PUT', path, requestHeaders, null, timestamp);
+    const signature = await generateSignature('PUT', path, requestHeaders, null, timestamp, config);
     
-    const authorization = `AWS4-HMAC-SHA256 Credential=${R2_CONFIG.accessKeyId}/${date}/${R2_CONFIG.region}/s3/aws4_request, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+    const authorization = `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${date}/${config.region}/s3/aws4_request, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
-    const response = await fetch(`${R2_CONFIG.endpoint}${path}`, {
+    const response = await fetch(`${config.endpoint}${path}`, {
       method: 'PUT',
       headers: {
         ...requestHeaders,
@@ -190,7 +202,7 @@ export async function handler(event, context) {
     });
 
     if (response.ok) {
-      const url = `${R2_CONFIG.customDomain}/${newFilename}`;
+      const url = `${config.customDomain}/${newFilename}`;
       return {
         statusCode: 200,
         headers,
