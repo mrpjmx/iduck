@@ -4,9 +4,6 @@ mainSections = ["post"]
 rssFullContent = true
 favicon        = "img/favicon.ico"
 
-# Custom JS for Netlify Identity
-customJS = ["https://identity.netlify.com/v1/netlify-identity-widget.js", "/js/netlify-identity.js"]
-
 # Accepted values: "default", "lastmod"
 SortBy              = "default"
 
