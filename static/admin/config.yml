@@ -19,7 +19,7 @@ collections:
       - { label: "标题", name: "title", widget: "string" }
       - { label: "描述", name: "description", widget: "string", required: false }
       - { label: "发布日期", name: "date", widget: "datetime" }
-      - { label: "封面图片", name: "image", widget: "image", required: false }
+      - { label: "封面图片", name: "image", widget: "r2-image", required: false }
       - { label: "别名", name: "slug", widget: "string", required: false }
       - label: "分类"
         name: "categories"
@@ -48,7 +48,7 @@ collections:
       - { label: "标题", name: "title", widget: "string" }
       - { label: "描述", name: "description", widget: "string", required: false }
       - { label: "发布日期", name: "date", widget: "datetime", required: false }
-      - { label: "封面图片", name: "image", widget: "image", required: false }
+      - { label: "封面图片", name: "image", widget: "r2-image", required: false }
       - { label: "正文", name: "body", widget: "markdown" }
 
   # 分类页面
