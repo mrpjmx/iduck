@@ -1,7 +1,6 @@
 /**
  * Netlify Function: R2 图片上传
- * 路径: /api/upload-image
- * 敏感信息通过环境变量配置
+ * 使用 HMAC-SHA256 签名
  */
 
 // 从环境变量读取配置
@@ -14,10 +13,35 @@ const getConfig = () => ({
   customDomain: process.env.R2_CUSTOM_DOMAIN || 'https://img.brochuan.com'
 });
 
-// 生成 AWS Signature V4
-async function generateSignature(method, path, headers, body, timestamp, config) {
+// HMAC-SHA256 签名
+async function hmacSha256(key, message) {
   const encoder = new TextEncoder();
+  const keyData = typeof key === 'string' ? encoder.encode(key) : key;
   
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(message));
+  return new Uint8Array(signature);
+}
+
+// SHA256 哈希
+async function sha256(message) {
+  const encoder = new TextEncoder();
+  const hash = await crypto.subtle.digest('SHA-256', encoder.encode(message));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// 生成 AWS Signature V4
+async function generateSignature(method, path, headers, payloadHash, timestamp, config) {
+  const date = timestamp.slice(0, 8);
+  
+  // Canonical headers
   const canonicalHeaders = Object.keys(headers)
     .sort()
     .map(k => `${k.toLowerCase()}:${headers[k]}\n`)
@@ -28,13 +52,7 @@ async function generateSignature(method, path, headers, body, timestamp, config)
     .map(k => k.toLowerCase())
     .join(';');
 
-  const payloadHash = await crypto.subtle.digest(
-    'SHA-256',
-    encoder.encode(body || '')
-  ).then(hash => Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join(''));
-
+  // Canonical request
   const canonicalRequest = [
     method,
     path,
@@ -45,16 +63,10 @@ async function generateSignature(method, path, headers, body, timestamp, config)
     payloadHash
   ].join('\n');
 
-  const date = timestamp.slice(0, 8);
+  // String to sign
   const credentialScope = `${date}/${config.region}/s3/aws4_request`;
+  const canonicalRequestHash = await sha256(canonicalRequest);
   
-  const canonicalRequestHash = await crypto.subtle.digest(
-    'SHA-256',
-    encoder.encode(canonicalRequest)
-  ).then(hash => Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join(''));
-
   const stringToSign = [
     'AWS4-HMAC-SHA256',
     timestamp,
@@ -62,24 +74,15 @@ async function generateSignature(method, path, headers, body, timestamp, config)
     canonicalRequestHash
   ].join('\n');
 
-  const kSecret = encoder.encode(`AWS4${config.secretAccessKey}`);
-  const kDate = await crypto.subtle.importKey('raw', kSecret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const kDateSig = await crypto.subtle.sign('HMAC', kDate, encoder.encode(date));
+  // Calculate signature
+  const kSecret = `AWS4${config.secretAccessKey}`;
+  const kDate = await hmacSha256(kSecret, date);
+  const kRegion = await hmacSha256(kDate, config.region);
+  const kService = await hmacSha256(kRegion, 's3');
+  const kSigning = await hmacSha256(kService, 'aws4_request');
+  const signature = await hmacSha256(kSigning, stringToSign);
   
-  const kRegion = await crypto.subtle.importKey('raw', kDateSig, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const kRegionSig = await crypto.subtle.sign('HMAC', kRegion, encoder.encode(config.region));
-  
-  const kService = await crypto.subtle.importKey('raw', kRegionSig, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const kServiceSig = await crypto.subtle.sign('HMAC', kService, encoder.encode('s3'));
-  
-  const kSigning = await crypto.subtle.importKey('raw', kServiceSig, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const kSigningSig = await crypto.subtle.sign('HMAC', kSigning, encoder.encode('aws4_request'));
-  
-  const signature = await crypto.subtle.sign('HMAC', kSigningSig, encoder.encode(stringToSign));
-  
-  return Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  return Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 function generateFilename(originalName) {
@@ -120,45 +123,38 @@ export async function handler(event, context) {
 
   try {
     // Parse multipart form data
-    const body = event.body;
-    const isBase64 = event.isBase64Encoded;
-    
-    // 解析 multipart/form-data
     const boundaryMatch = event.headers['content-type']?.match(/boundary=(.+)/);
     if (!boundaryMatch) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'No boundary found' }) };
     }
     
     const boundary = boundaryMatch[1];
-    const rawBody = isBase64 ? Buffer.from(body, 'base64') : Buffer.from(body, 'utf-8');
+    const rawBody = event.isBase64Encoded 
+      ? Buffer.from(event.body, 'base64') 
+      : Buffer.from(event.body, 'utf-8');
     
     // 提取文件
-    const parts = rawBody.toString().split(`--${boundary}`);
+    const parts = rawBody.toString('binary').split(`--${boundary}`);
     let fileBuffer = null;
     let contentType = 'image/jpeg';
     let filename = 'image.jpg';
     
     for (const part of parts) {
       if (part.includes('Content-Disposition') && part.includes('name="file"')) {
-        const lines = part.split('\r\n');
-        let contentStart = 0;
-        for (let i = 0; i < lines.length; i++) {
-          if (lines[i] === '' || lines[i] === '\r') {
-            contentStart = i + 1;
-            break;
-          }
-          // 提取 Content-Type
-          if (lines[i].toLowerCase().startsWith('content-type:')) {
-            contentType = lines[i].split(':')[1].trim();
-          }
-          // 提取 filename
-          if (lines[i].includes('filename=')) {
-            const fnMatch = lines[i].match(/filename="(.+)"/);
-            if (fnMatch) filename = fnMatch[1];
-          }
-        }
+        const headerEnd = part.indexOf('\r\n\r\n');
+        if (headerEnd === -1) continue;
         
-        const content = part.slice(contentStart).replace(/\r\n$/, '').replace(/--\r?\n?$/, '');
+        const header = part.slice(0, headerEnd);
+        const content = part.slice(headerEnd + 4).replace(/\r\n$/, '').replace(/--\r?\n?$/, '');
+        
+        // 提取 Content-Type
+        const ctMatch = header.match(/Content-Type:\s*(.+)/i);
+        if (ctMatch) contentType = ctMatch[1].trim();
+        
+        // 提取 filename
+        const fnMatch = header.match(/filename="(.+)"/);
+        if (fnMatch) filename = fnMatch[1];
+        
         fileBuffer = Buffer.from(content, 'binary');
         break;
       }
@@ -172,14 +168,18 @@ export async function handler(event, context) {
     const newFilename = generateFilename(filename);
     const path = `/${config.bucket}/${newFilename}`;
     
+    // 计算 payload hash
+    const payloadHash = await sha256(fileBuffer.toString('binary'));
+    
     // 上传到 R2
     const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const date = timestamp.slice(0, 8);
     
+    const host = new URL(config.endpoint).host;
     const requestHeaders = {
-      'Host': new URL(config.endpoint).host,
+      'Host': host,
       'Content-Type': contentType,
-      'X-Amz-Content-Sha256': 'UNSIGNED-PAYLOAD',
+      'X-Amz-Content-Sha256': payloadHash,
       'X-Amz-Date': timestamp
     };
 
@@ -188,14 +188,17 @@ export async function handler(event, context) {
       .map(k => k.toLowerCase())
       .join(';');
 
-    const signature = await generateSignature('PUT', path, requestHeaders, null, timestamp, config);
+    const signature = await generateSignature('PUT', path, requestHeaders, payloadHash, timestamp, config);
     
     const authorization = `AWS4-HMAC-SHA256 Credential=${config.accessKeyId}/${date}/${config.region}/s3/aws4_request, SignedHeaders=${signedHeaders}, Signature=${signature}`;
 
     const response = await fetch(`${config.endpoint}${path}`, {
       method: 'PUT',
       headers: {
-        ...requestHeaders,
+        'Host': host,
+        'Content-Type': contentType,
+        'X-Amz-Content-Sha256': payloadHash,
+        'X-Amz-Date': timestamp,
         'Authorization': authorization
       },
       body: fileBuffer
@@ -213,17 +216,18 @@ export async function handler(event, context) {
         })
       };
     } else {
+      const errorText = await response.text();
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: `Upload failed: ${response.status}` })
+        body: JSON.stringify({ error: `Upload failed: ${response.status}`, details: errorText })
       };
     }
   } catch (error) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: error.message })
+      body: JSON.stringify({ error: error.message, stack: error.stack })
     };
   }
 }
