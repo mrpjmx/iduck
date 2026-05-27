@@ -2,7 +2,7 @@
 title: 2026成华嘉祥小升初、初升高校园开放日邀请函
 description: 成都市成华区嘉祥外国语学校、成都市成华区嘉祥外国语高级中学2026年校园开放日邀请函
 slug: chenghua-jiaxiang-open-day-2026
-date: 2026-05-27 19:42:00+0000
+date: 2026-05-27 12:00:00+0000
 image: cover.jpg
 categories:
     - 学校资讯
